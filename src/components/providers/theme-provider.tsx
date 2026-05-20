@@ -40,17 +40,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // App is dark mode only
   };
 
+  const contextValue = { theme, toggleTheme, setTheme };
+
   // Prevent flash of wrong theme
   if (!mounted) {
     return (
-      <div className="dark" suppressHydrationWarning>
-        {children}
-      </div>
+      <ThemeContext.Provider value={contextValue}>
+        <div className="dark" suppressHydrationWarning>
+          {children}
+        </div>
+      </ThemeContext.Provider>
     );
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );
