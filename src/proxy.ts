@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 /**
  * Next.js Middleware
- * Runs on every matched request to refresh Supabase auth session
+ * This runs before every request to update the Supabase session
  * and protect dashboard routes
  */
 export async function proxy(request: NextRequest) {

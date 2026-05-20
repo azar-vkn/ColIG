@@ -163,14 +163,14 @@ export function Select({ label, options, value, onChange, placeholder, className
 }
 
 /* ===== Card Component ===== */
-interface CardProps {
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
   hover?: boolean;
   glow?: boolean;
 }
 
-export function Card({ children, className, hover = false, glow = false }: CardProps) {
+export function Card({ children, className, hover = false, glow = false, ...props }: CardProps) {
   return (
     <div
       className={cn(
@@ -179,6 +179,7 @@ export function Card({ children, className, hover = false, glow = false }: CardP
         glow && 'animate-pulse-glow',
         className
       )}
+      {...props}
     >
       {children}
     </div>

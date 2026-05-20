@@ -129,6 +129,8 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #09090b;
+  color: #fafafa;
 }
 
 /* ===== Utility Classes ===== */

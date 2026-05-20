@@ -1,13 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles, Zap, Target, Hash, RefreshCw, LayoutGrid,
-  ArrowRight, Check, ChevronDown, Star
+  ArrowRight, Check, ChevronDown, Star, Copy, Loader2, Play
 } from 'lucide-react';
 import { Button } from '@/components/ui';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 /* ===== Animation Variants ===== */
 const fadeUp = {
@@ -62,6 +64,29 @@ const faqs = [
   { q: 'Can I cancel my subscription anytime?', a: 'Absolutely. Cancel anytime with no questions asked. You will retain access until the end of your billing period.' },
 ];
 
+/* ===== Output Card ===== */
+function OutputCard({ title, content, className }: { title: string, content: string, className?: string }) {
+  return (
+    <div className={cn("glass-card p-6 relative group overflow-hidden text-left flex flex-col", className)}>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-brand-400 font-bold text-xs uppercase tracking-widest">{title}</h4>
+        <button 
+           onClick={() => {
+             navigator.clipboard.writeText(content);
+             toast.success('Copied to clipboard');
+           }}
+           className="text-zinc-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
+        >
+          <Copy className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="text-zinc-300 text-sm whitespace-pre-wrap leading-relaxed flex-1 overflow-y-auto">
+        {content}
+      </div>
+    </div>
+  );
+}
+
 /* ===== FAQ Item ===== */
 function FAQItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
@@ -91,8 +116,56 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 /* ===== Landing Page ===== */
 export default function LandingPage() {
+  const placeholders = [
+    "Promote my café opening",
+    "Church youth event reel",
+    "Instagram skincare post",
+    "Startup launch announcement"
+  ];
+  
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [topic, setTopic] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [hasGenerated, setHasGenerated] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const [results, setResults] = useState<{ hook?: string, caption?: string, cta?: string, hashtags?: string, script?: string } | null>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleGenerate = async () => {
+    const query = topic.trim() || placeholders[placeholderIndex];
+    
+    if (hasGenerated) {
+      setShowSignupModal(true);
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: 'demo', input: { topic: query } })
+      });
+      const data = await response.json();
+      if (data.result) {
+        setResults(data.result);
+        setHasGenerated(true);
+      }
+    } catch (error) {
+      toast.error('Failed to generate. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-surface-900 text-white overflow-hidden">
+    <div className="min-h-screen bg-surface-900 text-white overflow-hidden selection:bg-brand-500/30 selection:text-white">
       {/* ===== NAVBAR ===== */}
       <nav className="fixed top-0 w-full z-50 glass border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -107,7 +180,6 @@ export default function LandingPage() {
               <a href="#features" className="text-sm text-zinc-400 hover:text-white transition-colors">Features</a>
               <a href="#pricing" className="text-sm text-zinc-400 hover:text-white transition-colors">Pricing</a>
               <a href="#testimonials" className="text-sm text-zinc-400 hover:text-white transition-colors">Testimonials</a>
-              <a href="#faq" className="text-sm text-zinc-400 hover:text-white transition-colors">FAQ</a>
             </div>
             <div className="flex items-center gap-3">
               <Link href="/login">
@@ -121,8 +193,8 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ===== HERO ===== */}
-      <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+      {/* ===== HERO (Interactive AI) ===== */}
+      <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 min-h-[90vh] flex flex-col justify-center">
         {/* Background Effects */}
         <div className="absolute inset-0 grid-pattern" />
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-brand-500/10 rounded-full blur-[120px] pointer-events-none" />
@@ -132,95 +204,150 @@ export default function LandingPage() {
           initial="hidden"
           animate="visible"
           variants={stagger}
-          className="relative max-w-5xl mx-auto text-center"
+          className="relative max-w-5xl mx-auto text-center w-full"
         >
           <motion.div variants={fadeUp} className="mb-6">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-brand-500/30 bg-brand-500/10 text-brand-400 text-xs font-medium">
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-brand-500/30 bg-brand-500/10 text-brand-400 text-xs font-medium backdrop-blur-sm shadow-[0_0_20px_rgba(var(--brand-500),0.2)]">
               <Sparkles className="w-3 h-3" />
-              AI-Powered Instagram Growth
+              Experience the AI instantly
             </span>
           </motion.div>
 
           <motion.h1
             variants={fadeUp}
-            className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] mb-6"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6"
           >
-            Generate Viral Instagram{' '}
-            <br className="hidden sm:block" />
-            Content in{' '}
-            <span className="gradient-text">Seconds</span>
+            Turn Any Idea Into <br className="hidden sm:block" />
+            <span className="gradient-text">Viral-Ready Content</span> in Seconds.
           </motion.h1>
 
           <motion.p
             variants={fadeUp}
             className="text-lg sm:text-xl text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            AI-powered hooks, captions, carousel ideas, and hashtags for creators.
-            <br className="hidden sm:block" />
-            <span className="text-zinc-300 font-medium">Create content that actually gets attention.</span>
+            Generate hooks, captions, hashtags, and content scripts instantly with AI. No signup required to try it out.
           </motion.p>
 
-          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/signup">
-              <Button size="lg" className="text-base px-8 py-4">
-                Start Creating for Free
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
-            <Link href="#features">
-              <Button variant="secondary" size="lg" className="text-base px-8 py-4">
-                See How It Works
-              </Button>
-            </Link>
-          </motion.div>
-
-          <motion.p variants={fadeUp} className="mt-6 text-xs text-zinc-500 flex items-center justify-center gap-4">
-            <span className="flex items-center gap-1"><Check className="w-3 h-3 text-emerald-500" /> No credit card required</span>
-            <span className="flex items-center gap-1"><Check className="w-3 h-3 text-emerald-500" /> 5 free generations/day</span>
-            <span className="flex items-center gap-1"><Check className="w-3 h-3 text-emerald-500" /> Cancel anytime</span>
-          </motion.p>
-
-          {/* Hero Preview Card */}
-          <motion.div
-            variants={fadeUp}
-            className="mt-16 relative max-w-3xl mx-auto"
-          >
-            <div className="absolute -inset-1 gradient-bg rounded-2xl opacity-20 blur-xl" />
-            <div className="relative glass-card p-6 sm:p-8 text-left">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-2 h-2 rounded-full bg-red-500" />
-                <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                <div className="w-2 h-2 rounded-full bg-green-500" />
-                <span className="text-xs text-zinc-500 ml-2">ColIG — Hook Generator</span>
+          {/* AI Interactive Input Area */}
+          <motion.div variants={fadeUp} className="max-w-3xl mx-auto relative z-20">
+            <div className={cn(
+              "p-2 rounded-2xl glass-card flex flex-col sm:flex-row items-center gap-2 border shadow-2xl transition-all duration-300",
+              isGenerating ? "border-brand-500/50 shadow-[0_0_40px_rgba(99,102,241,0.2)]" : "border-white/10 hover:border-brand-500/30"
+            )}>
+              <div className="relative flex-1 w-full flex items-center px-4 py-3 sm:py-0">
+                <Target className="w-5 h-5 text-brand-400 shrink-0 mr-3 hidden sm:block" />
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+                  className="w-full bg-transparent border-none text-white text-base sm:text-lg focus:outline-none placeholder:text-transparent"
+                />
+                {!topic && (
+                  <div className="absolute left-4 sm:left-12 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500 text-base sm:text-lg">
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={placeholderIndex}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        transition={{ duration: 0.3 }}
+                        className="inline-block"
+                      >
+                        {placeholders[placeholderIndex]}...
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
+                )}
               </div>
-              <div className="space-y-3">
-                {[
-                  "Nobody talks about this…",
-                  "You're wasting your 20s if you don't know this",
-                  "Read this before starting a business…",
-                  "I wish someone told me this 5 years ago",
-                  "Stop scrolling. This will change your life.",
-                ].map((hook, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.8 + i * 0.15, duration: 0.5 }}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5"
-                  >
-                    <span className="text-brand-400 font-mono text-xs">{String(i + 1).padStart(2, '0')}</span>
-                    <span className="text-sm text-zinc-200 flex-1">{hook}</span>
-                    <button className="text-xs text-zinc-500 hover:text-brand-400 transition-colors">Copy</button>
-                  </motion.div>
-                ))}
-              </div>
+              <Button 
+                onClick={handleGenerate} 
+                disabled={isGenerating}
+                size="lg" 
+                className="w-full sm:w-auto shrink-0 px-8 py-6 rounded-xl font-semibold shadow-[0_0_20px_rgba(99,102,241,0.4)]"
+              >
+                {isGenerating ? (
+                  <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Generating...</>
+                ) : (
+                  <><Play className="w-5 h-5 mr-2" /> Generate Free</>
+                )}
+              </Button>
             </div>
           </motion.div>
+
+          {/* Generated Results Area */}
+          <AnimatePresence>
+            {results && (
+              <motion.div 
+                initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.5, type: "spring" }}
+                className="mt-16 max-w-5xl mx-auto text-left relative z-10"
+              >
+                <div className={cn(
+                  "grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6",
+                  showSignupModal && "blur-[8px] pointer-events-none transition-all duration-500 opacity-60"
+                )}>
+                  {/* Left Column (Hook & Hashtags) */}
+                  <div className="flex flex-col gap-4 lg:gap-6">
+                     <OutputCard title="Viral Hook" content={results.hook || ""} />
+                     <OutputCard title="Hashtags" content={results.hashtags || ""} className="flex-1" />
+                  </div>
+                  
+                  {/* Middle Column (Caption & CTA) */}
+                  <div className="flex flex-col gap-4 lg:gap-6 md:col-span-1">
+                    <OutputCard title="Caption" content={results.caption || ""} className="flex-1" />
+                    <OutputCard title="Call to Action" content={results.cta || ""} />
+                  </div>
+                  
+                  {/* Right Column (Content Script) */}
+                  <div className="flex flex-col gap-4 lg:gap-6">
+                    <OutputCard title="Content Script" content={results.script || ""} className="h-full" />
+                  </div>
+                </div>
+
+                {/* Lock Overlay Modal */}
+                {showSignupModal && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="absolute inset-0 z-20 flex items-center justify-center p-4"
+                  >
+                    <div className="glass-card p-8 sm:p-10 max-w-md w-full text-center shadow-2xl border-brand-500/30 bg-surface-900/90 backdrop-blur-xl">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-electric-500 flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <Sparkles className="w-8 h-8 text-white" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-white mb-3">Unlock Unlimited AI Content</h3>
+                      <p className="text-zinc-400 text-sm mb-8 leading-relaxed">
+                        You've seen the magic. Create a free account to generate unlimited viral hooks, captions, and scripts tailored to your brand.
+                      </p>
+                      
+                      <div className="space-y-4">
+                        <Link href="/signup">
+                           <Button variant="outline" className="w-full justify-center h-12 text-sm font-medium">
+                             Continue with Google
+                           </Button>
+                        </Link>
+                        <Link href="/signup">
+                           <Button variant="primary" className="w-full justify-center h-12 text-sm font-medium">
+                             Create Free Account
+                           </Button>
+                        </Link>
+                        <div className="pt-4 mt-4 border-t border-white/10 text-sm text-zinc-500">
+                          Already have an account? <Link href="/login" className="text-brand-400 font-medium hover:underline">Sign In</Link>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </section>
 
       {/* ===== FEATURES ===== */}
-      <section id="features" className="py-24 px-4 sm:px-6 lg:px-8 relative">
+      <section id="features" className="py-24 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand-950/20 to-transparent" />
         <motion.div
           initial="hidden"
@@ -296,125 +423,8 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* ===== PRICING ===== */}
-      <section id="pricing" className="py-24 px-4 sm:px-6 lg:px-8 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand-950/20 to-transparent" />
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-100px' }}
-          variants={stagger}
-          className="relative max-w-5xl mx-auto"
-        >
-          <motion.div variants={fadeUp} className="text-center mb-16">
-            <span className="text-brand-400 text-sm font-medium uppercase tracking-widest">Pricing</span>
-            <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4">
-              Start Free. Scale When Ready.
-            </h2>
-            <p className="text-zinc-400 max-w-xl mx-auto">
-              No hidden fees. No credit card required. Upgrade when you need unlimited power.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {pricingPlans.map((plan) => (
-              <motion.div
-                key={plan.name}
-                variants={fadeUp}
-                className={`relative rounded-2xl p-6 ${
-                  plan.popular
-                    ? 'bg-gradient-to-b from-brand-500/20 to-brand-900/10 border-2 border-brand-500/50'
-                    : 'glass-card'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full gradient-bg text-xs font-medium text-white">
-                    Most Popular
-                  </div>
-                )}
-                <div className="text-center mb-6">
-                  <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
-                  <div className="mt-3 flex items-baseline justify-center gap-1">
-                    <span className="text-4xl font-bold text-white">{plan.price}</span>
-                    <span className="text-zinc-500 text-sm">{plan.period}</span>
-                  </div>
-                </div>
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-sm text-zinc-300">
-                      <Check className="w-4 h-4 text-brand-400 shrink-0" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/signup">
-                  <Button
-                    variant={plan.popular ? 'primary' : 'outline'}
-                    className="w-full"
-                  >
-                    {plan.cta}
-                  </Button>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </section>
-
-      {/* ===== FAQ ===== */}
-      <section id="faq" className="py-24 px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-100px' }}
-          variants={stagger}
-          className="max-w-2xl mx-auto"
-        >
-          <motion.div variants={fadeUp} className="text-center mb-16">
-            <span className="text-brand-400 text-sm font-medium uppercase tracking-widest">FAQ</span>
-            <h2 className="text-3xl sm:text-4xl font-bold mt-3 mb-4">
-              Common Questions
-            </h2>
-          </motion.div>
-
-          <div className="space-y-3">
-            {faqs.map((faq) => (
-              <FAQItem key={faq.q} q={faq.q} a={faq.a} />
-            ))}
-          </div>
-        </motion.div>
-      </section>
-
-      {/* ===== CTA ===== */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 relative">
-        <div className="absolute inset-0 bg-gradient-to-t from-brand-950/30 to-transparent" />
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={stagger}
-          className="relative max-w-3xl mx-auto text-center"
-        >
-          <motion.h2 variants={fadeUp} className="text-3xl sm:text-5xl font-bold mb-6">
-            Ready to Create Content That{' '}
-            <span className="gradient-text">Actually Gets Attention</span>?
-          </motion.h2>
-          <motion.p variants={fadeUp} className="text-zinc-400 text-lg mb-8">
-            Join 10,000+ creators using ColIG to grow their Instagram faster than ever.
-          </motion.p>
-          <motion.div variants={fadeUp}>
-            <Link href="/signup">
-              <Button size="lg" className="text-base px-10 py-4">
-                Get Started — It&apos;s Free
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
-          </motion.div>
-        </motion.div>
-      </section>
-
       {/* ===== FOOTER ===== */}
-      <footer className="border-t border-white/5 py-12 px-4 sm:px-6 lg:px-8">
+      <footer className="border-t border-white/5 py-12 px-4 sm:px-6 lg:px-8 bg-surface-900/50">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="col-span-2 md:col-span-1">
@@ -425,27 +435,12 @@ export default function LandingPage() {
                 <span className="text-lg font-bold gradient-text">ColIG</span>
               </div>
               <p className="text-sm text-zinc-500 mb-4">Create content that actually gets attention.</p>
-              <div className="flex items-center gap-3">
-                <a href="#" className="text-zinc-500 hover:text-white transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
-                <a href="#" className="text-zinc-500 hover:text-white transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg></a>
-                <a href="#" className="text-zinc-500 hover:text-white transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg></a>
-              </div>
             </div>
             <div>
               <h4 className="text-sm font-semibold text-white mb-3">Product</h4>
               <ul className="space-y-2">
                 <li><a href="#features" className="text-sm text-zinc-500 hover:text-white transition-colors">Features</a></li>
-                <li><a href="#pricing" className="text-sm text-zinc-500 hover:text-white transition-colors">Pricing</a></li>
                 <li><Link href="/dashboard" className="text-sm text-zinc-500 hover:text-white transition-colors">Dashboard</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-white mb-3">Tools</h4>
-              <ul className="space-y-2">
-                <li><a href="#" className="text-sm text-zinc-500 hover:text-white transition-colors">Hook Generator</a></li>
-                <li><a href="#" className="text-sm text-zinc-500 hover:text-white transition-colors">Caption Generator</a></li>
-                <li><a href="#" className="text-sm text-zinc-500 hover:text-white transition-colors">Carousel Generator</a></li>
-                <li><a href="#" className="text-sm text-zinc-500 hover:text-white transition-colors">Hashtag Generator</a></li>
               </ul>
             </div>
             <div>
@@ -453,7 +448,6 @@ export default function LandingPage() {
               <ul className="space-y-2">
                 <li><a href="#" className="text-sm text-zinc-500 hover:text-white transition-colors">Privacy Policy</a></li>
                 <li><a href="#" className="text-sm text-zinc-500 hover:text-white transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="text-sm text-zinc-500 hover:text-white transition-colors">Contact</a></li>
               </ul>
             </div>
           </div>

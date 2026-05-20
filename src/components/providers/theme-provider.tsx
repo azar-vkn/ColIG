@@ -21,10 +21,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem('colig-theme') as Theme | null;
-    if (stored) {
-      setThemeState(stored);
-    }
+    setThemeState('dark');
   }, []);
 
   useEffect(() => {
@@ -36,11 +33,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [theme, mounted]);
 
   const toggleTheme = () => {
-    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    // App is dark mode only for now
   };
 
   const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
+    // App is dark mode only
   };
 
   // Prevent flash of wrong theme
